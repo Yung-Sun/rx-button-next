@@ -1,50 +1,64 @@
 <template>
   <div class="rx-button-next" :class="`rx-button-next-state-${currentState}`" @click="handleClick">
     <canvas id="rx-button-next-canvas-confetti" ref="canvasRef" :width="canvasWidth" :height="canvasHeight"/>
-    <div class="rx-button-next-pending rx-button-next-content" v-if="currentState === 'pending'">
-      <span style="--d:30ms;" class="rx-button-next-pending-icon"
-            :class="{'rx-button-next-pending-text-leave': pendingTextLeave}">
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 12 12">
-          <line stroke="currentColor" x1="6" y1="1" x2="6" y2="11"/>
-          <polyline stroke="currentColor" points="1.5,6 6,11 10.5,6"/>
-        </svg>
-      </span>
-      <span :class="[{'rx-button-next-pending-text-leave': pendingTextLeave},`rx-button-next-pending-char${index}`]"
-            v-for="(char,index) in pendingTextArr"
-            :style="`--d:${60 + index*30}ms`" v-html="char"/>
-    </div>
-    <div class="rx-button-next-loading rx-button-next-content" v-if="currentState === 'loading'">
-      <slot name="loading">
-        <div class="rx-button-next-dotList">
-          <span class="rx-button-next-dot" style="--y: -6px;"/>
-          <span class="rx-button-next-dot" style="--y: -6px;"/>
-          <span class="rx-button-next-dot" style="--y: -6px;"/>
+    <div style="position: relative;width: 100px;height: 100%;">
+      <transition-group name="fade">
+        <div class="rx-button-next-pending rx-button-next-content" v-if="currentState === 'pending'">
+          <slot>
+            <span style="--d:30ms;" class="rx-button-next-pending-icon"
+                  :class="{'rx-button-next-pending-text-leave': pendingTextLeave}">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 12 12">
+                <line stroke="currentColor" x1="6" y1="1" x2="6" y2="11"/>
+                <polyline stroke="currentColor" points="1.5,6 6,11 10.5,6"/>
+              </svg>
+            </span>
+            <span
+                :class="[{'rx-button-next-pending-text-leave': pendingTextLeave},`rx-button-next-pending-char${index}`]"
+                v-for="(char,index) in pendingTextArr"
+                :style="`--d:${60 + index*30}ms`" v-html="char"/>
+          </slot>
         </div>
-      </slot>
-    </div>
-    <div class="rx-button-next-success rx-button-next-content" v-if="currentState === 'success'">
-      <slot name="success">
-        <svg :class="{'rx-button-next-successful-icon': successIconVisible}" xmlns="http://www.w3.org/2000/svg"
-             viewBox="0 0 13 11">
-          <polyline stroke="currentColor" points="1.4,5.8 5.1,9.5 11.6,2.1 "/>
-        </svg>
-        <span>{{ successText }}</span>
-      </slot>
-    </div>
-    <div class="rx-button-next-fail rx-button-next-content" v-if="currentState === 'fail'">
-      <slot name="fail">
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 12 12">
-          <line stroke="currentColor" x1="11" y1="11" x2="1" y2="1"/>
-          <line stroke="currentColor" x1="11" y1="1" x2="1" y2="11"/>
-        </svg>
-        <span>{{ failText }}</span>
-      </slot>
+        <div class="rx-button-next-loading rx-button-next-content" v-if="currentState === 'loading'">
+          <slot name="loading">
+            <div class="rx-button-next-dotList">
+              <span class="rx-button-next-dot" style="--y: -6px;"/>
+              <span class="rx-button-next-dot" style="--y: -6px;"/>
+              <span class="rx-button-next-dot" style="--y: -6px;"/>
+            </div>
+          </slot>
+        </div>
+        <div class="rx-button-next-success rx-button-next-content" v-if="currentState === 'success'">
+          <slot name="success">
+            <svg :class="{'rx-button-next-successful-icon': successIconVisible}" xmlns="http://www.w3.org/2000/svg"
+                 viewBox="0 0 13 11">
+              <polyline stroke="currentColor" points="1.4,5.8 5.1,9.5 11.6,2.1 "/>
+            </svg>
+            <span>{{ successText }}</span>
+          </slot>
+        </div>
+        <div class="rx-button-next-fail rx-button-next-content" v-if="currentState === 'fail'">
+          <slot name="fail">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 12 12">
+              <line stroke="currentColor" x1="11" y1="11" x2="1" y2="1"/>
+              <line stroke="currentColor" x1="11" y1="1" x2="1" y2="11"/>
+            </svg>
+            <span>{{ failText }}</span>
+          </slot>
+        </div>
+      </transition-group>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import {defineProps, onBeforeUnmount, onMounted, reactive, ref, watch} from "vue"
+import {defineProps, defineEmits, onBeforeUnmount, onMounted, reactive, ref, watch} from "vue"
+
+// Emit
+const emit = defineEmits<{
+  (e: 'loading'): void
+  (e: 'success'): void
+  (e: 'fail'): void
+}>()
 
 // Props
 const props = defineProps({
@@ -58,7 +72,11 @@ const props = defineProps({
       {front: '#f9ff0c', back: '#ffc507'}, // Light Blue
       {front: '#5c86ff', back: '#345dd1'}  // Darker Blue
     ]
-  }
+  },
+  onClick: {
+    required: true,
+    type: Function
+  },
 })
 
 // Data
@@ -71,7 +89,7 @@ let canvasWidth = ref(500)
 let canvasHeight = ref(620)
 
 // Canvas Data
-let canvasRef = ref<any>(null)
+let canvasRef = ref<HTMLCanvasElement | null>(null)
 let animationId = ref<any>(0)
 let intervalId = ref<any>(0)
 const canvasRenderData = reactive({
@@ -119,24 +137,83 @@ const handleClick = () => {
   buttonClickable.value = false
   pendingTextLeave.value = true
   setTimeout(() => {
+    emit('loading')
     currentState.value = 'loading'
     pendingTextLeave.value = false
-    setTimeout(() => {
-      currentState.value = 'success'
+    let cb = props.onClick()
+    const afterSuccess = () => {
+      // 获得成功结果后，进入成功状态
       initBurst()
-      setTimeout(() => {
-        resetButton()
-      }, 5000)
-    }, 2000)
+      currentState.value = 'success'
+      emit('success')
+    }
+    const afterFail = () => {
+      // 获得失败结果后，进入失败状态
+      currentState.value = 'fail'
+      emit('fail')
+    }
+    if (cb && cb.then) {
+      cb.then(() => {
+        afterSuccess()
+      }, () => {
+        afterFail()
+      })
+    } else {
+      if (typeof cb === 'boolean') {
+        cb ? afterSuccess() : afterFail()
+      } else {
+        // onClick 的返回值不是 boolean 或者 Promise 则报错
+        throw '😱 Oh~ Attribute onClick needs return a Boolean or Promise object'
+      }
+    }
   }, (pendingTextArr.value.length + 1) * 40 + 550)
 }
 
 const resetButton = () => {
-  buttonClickable.value = true
-  currentState.value = 'pending'
-  pendingTextLeave.value = false
-  successIconVisible.value = false
+  if (currentState.value !== 'loading') {
+    buttonClickable.value = true
+    currentState.value = 'pending'
+    pendingTextLeave.value = false
+    successIconVisible.value = false
+  } else {
+    throw "😯 Could not reset the button when the status is loading"
+  }
+
 }
+const changeButtonState = (stateName: 'pending' | 'success' | 'fail') => {
+  // 手动切换按钮状态
+  if (currentState.value === 'loading') {
+    return false
+  }
+  switch (stateName) {
+    case 'pending':
+      resetButton()
+      break
+    case 'success':
+      if (currentState.value !== 'success') {
+        pendingTextLeave.value = false
+        successIconVisible.value = false
+        currentState.value = 'success'
+        buttonClickable.value = false
+        emit('success')
+      }
+      break
+    case 'fail':
+      if (currentState.value !== 'fail') {
+        pendingTextLeave.value = false
+        successIconVisible.value = false
+        currentState.value = 'fail'
+        buttonClickable.value = false
+        emit('fail')
+      }
+      break
+    default:
+      throw '😵 An unknown param was passed to function setButtonState'
+  }
+}
+
+// Define Expose
+defineExpose({resetButton, changeButtonState})
 
 // Canvas Methods
 // Utility Function
@@ -254,7 +331,7 @@ const render = () => {
     // update confetti "physics" values
     confetti.update();
 
-    // get front or back fill color
+    // get the fill color of front or back
     ctx.fillStyle = confetti.scale.y > 0 ? confetti.color.front : confetti.color.back;
 
     // draw confetti
@@ -304,7 +381,7 @@ const render = () => {
   animationId = window.requestAnimationFrame(render)
 }
 
-const getElementPosition = (el:any) => {
+const getElementPosition = (el: any) => {
   let position = {
     top: 0,
     left: 0
@@ -338,8 +415,8 @@ onMounted(() => {
   pendingTextArr.value = props.pendingText.split('').map(item => item === ' ' ? '&nbsp;' : item)
 
   render()
-  canvasWidth = canvasRef.value.clientWidth
-  canvasHeight = canvasRef.value.clientHeight
+  canvasWidth.value = (canvasRef.value as HTMLCanvasElement).clientWidth
+  canvasHeight.value = (canvasRef.value as HTMLCanvasElement).clientHeight
   canvasPositionData.buttonWidth = getElementPosition(canvasRef.value).left
   canvasPositionData.buttonHeight = getElementPosition(canvasRef.value).top
   window.onresize = () => {
@@ -360,6 +437,23 @@ onBeforeUnmount(() => {
 </script>
 
 <style scoped lang="scss">
+// 过渡动画 start
+.fade-enter-active, .fade-leave-active {
+  transition: transform .6s, opacity .4s;
+}
+
+.fade-enter-from {
+  transform: translateY(-100%) !important;
+  opacity: 0;
+}
+
+.fade-leave-to {
+  transform: translateY(100%) !important;
+  opacity: 0;
+}
+
+// 过渡动画 end
+
 .rx-button-next {
   border: 1px solid;
   display: inline-block;
@@ -369,6 +463,7 @@ onBeforeUnmount(() => {
   cursor: pointer;
   transition: padding 0.4s;
   position: relative;
+  height: 44.8px;
 
   &.rx-button-next-state-pending, &.rx-button-next-state-success, &.rx-button-next-state-fail {
     padding: 10px 40px;
@@ -382,7 +477,7 @@ onBeforeUnmount(() => {
     min-width: 100px;
     margin: 0 auto;
     text-align: center;
-    //border: 1px solid white;
+    position: absolute;
   }
 }
 
