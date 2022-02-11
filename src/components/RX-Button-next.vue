@@ -437,6 +437,12 @@ onBeforeUnmount(() => {
 </script>
 
 <style scoped lang="scss">
+*{
+  -webkit-box-sizing: border-box;
+  -moz-box-sizing: border-box;
+  box-sizing: border-box;
+}
+
 // 过渡动画 start
 .fade-enter-active, .fade-leave-active {
   transition: transform .6s, opacity .4s;
