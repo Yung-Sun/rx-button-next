@@ -17,5 +17,5 @@ yarn dev
 ## Build
 
 ```
-yarn build
+vite build
 ```
